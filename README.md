@@ -6,8 +6,6 @@ This is an Ansible auotmation playbook that provisions a small OpenShift environ
 
 AWS related configuration can be customised by modifying ```vars/aws-config.yaml```. Note that the number of application nodes is configurable, the default is 3.
 
-The OpenShift inventory can be customized by modifying ```roles/openshift-install/files/openshift_inventory.cfg```, note that dynamic metrics and logging is enabled by default as well as the AWS cloud provider.
-
 ## Prerequisites
 
  - Ansible 2.4 is required
@@ -28,12 +26,29 @@ Where my keypair is the name of your keypair. Obviously you need to have a copy 
 
 The playbook can optionally install CNS storage (gluster) as the default persistent storage provider for application storage. This will provision an additional three nodes dedicated to CNS. To use this feature, set the ```install_gluster``` to true and configure other parameters as needed. Note this is only for application storage, the registry remains on AWS storage.
 
+## Metrics, Logging and Prometheus (3.7)
+
+The playbook can optionally install metrics, logging or prometheus (on 3.7 only). To do so, change ```install_metrics```, ```install_logging``` and ```install_prometheus``` to true.
+
+## OpenShift Inventory
+
+The OpenShift inventory can be customized by modifying ```roles/openshift-install/files/openshift_inventory.cfg``` if you want to have more advanced control over certain features.
+
 ## Master and User Pods
 
 By default, the master will not host user pods, just infra pods. If you want the master to host user pods, comment the ```osm_default_node_selector``` in ```roles/openshift-install/files/openshft_inventory.cfg```. Note that if you also install
 gluster, this wil cause the gluster nodes to host user pods as well.
 
 _Note:_ This is currently disabled since there is a bug using osm_default_node_selector with gluster install, if you want the master to be unencumbered with user pods please uncomment this line in inventory.cfg. Note you cannot install gluster and have ```osm_default_node_selector``` enabled at the same time at the moment.
+
+## SSL
+
+This playbook can optionally use [letsencrypt](https://letsencrypt.org) to create and install SSL certificates for the master and hawkular metrics (assuming metrics is installed). To use this
+feature, change the ```use_lets_encrypt``` flag in the variables from false to true. Also make sure to set your email address as this is what lets encrypt will use to communicate with you.
+
+Note that lets encrypt as a rate limit for creating certificates of 20 requests a week. To minimize requests to lets encrypt, the playbook will download the certifications locally to where it is running to back them up. You can then set ```use_lets_encrypt``` to false and set the various SSL certificate variables to use the cached certificates.
+
+The process the playbook uses was taken from this [article](https://www.redpill-linpro.com/sysadvent/2017/12/15/letsencrypt-on-openshift.html), well worth reviewing if you want to understand the process. The one difference is that the playbook uses certbot in standalone mode rather then HAProxy to generate the certificate.
 
 ## Run
 
@@ -47,11 +62,15 @@ export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
 For OpenShift Origin, the command ```./openshift-playbook-run.sh``` will execute the Ansible playbook
 with a set of roles which will provision AWS infrastructure and install Openshift on top of that.
 
-Installing OpenShift Container Platform (OCP) requires a Red Hat subscription and you must provide your Red Hat credentials
-and the name of the pool to use to the script.
+Installing OpenShift Container Platform (OCP) requires a Red Hat subscription and you must either provide your Red Hat credentials
+and the name of the pool to use to the script or a Red Hat organization and activation id.
 
 ```
 ./openshift-playbook-run.sh -e rhsm_username=me@something.com -e rhsm_password=mypassword -e rhsm_pool="sas876sa8sa76sjk..."
+```
+or
+```
+./openshift-playbook-run.sh -e rhsm_key_id=xxxxx -e rhsm_org_id=xxxxx"
 ```
 Note the above is just an example, please update all variables including the pool name which is correct for your situation.
 

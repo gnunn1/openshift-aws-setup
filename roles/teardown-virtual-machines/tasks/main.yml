@@ -25,6 +25,7 @@
     ip: "{{item.public_ip_address}}"
     region: "{{region}}"
     state: absent
+    release_on_disassociation: yes
   with_items: "{{ ec2_facts.instances }}"
   when: ((item is defined) and (item.tags.Name == 'master-' ~ namespace) and (item.state != 'terminated'))
 

@@ -9,9 +9,6 @@
   register: rec
   ignore_errors: yes
 
-- debug:
-    msg: "{{rec}}"
-
 - name: Delete Route record
   route53:
     command: delete

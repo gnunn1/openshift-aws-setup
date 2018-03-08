@@ -23,13 +23,9 @@
           - "ansible_version.major == 2"
           - "ansible_version.minor == 4"
         msg: "This script is only supported with the 2.4 version of Ansible"
-
-    - fail: msg="Variable '{{ item }}' is not defined or is empty"
-      when: (deployment_type == 'openshift-enterprise') and ((item not in vars) or vars[item] == '')
-      with_items: 
-        - rhsm_username
-        - rhsm_password
-        - rhsm_pool
+    
+    - fail: msg="Variables required to register subscriptions are missing, please confirm that either rhsm_username, rhsm_password and rhsm_pool OR rhsm_key_id and rhsm_org_id is defined"
+      when: (deployment_type == 'openshift-enterprise') and not (((rhsm_username is defined) and (rhsm_password is defined) and (rhsm_pool is defined)) or ((rhsm_key_id is defined) and (rhsm_org_id is defined)))
 
 #############################################################
 # Register and update virtual machines
@@ -54,6 +50,46 @@
 
   - {role: register-virtual-machines, when: deployment_type == 'openshift-enterprise'}
   - update-virtual-machines
+
+#############################################################
+# Generate SSL certificates using lets encrypt, fetch to
+# local system and then set ssl vars
+#############################################################
+- name: Generate SSL certificates
+  hosts: master
+  remote_user: "{{ amazon_user }}"
+
+  vars_files:
+    - vars/aws-config.yml
+
+  roles:    
+
+  - {role: generate-ssl-certs, when: use_lets_encrypt}
+
+#############################################################
+# Copy SSL certificates to bastion
+#############################################################
+- name: Copy SSL certificates to bastion
+  hosts: bastion
+  remote_user: "{{ amazon_user }}"
+
+  vars_files:
+    - vars/aws-config.yml
+
+  tasks:
+    - name: create directory for certs
+      file: path=certs/{{item}} state=directory
+      with_items:
+        - "{{public_dns_zone}}"
+        - "{{hawkular_domain}}"
+
+    - name: copy master SSL certificates to bastion
+      copy:
+        src: "{{item}}"
+        dest: certs/{{public_dns_zone}}/{{item | basename}}
+      with_items:
+        - "{{master_ssl_cert_file}}"
+        - "{{master_ssl_key_file}}"
 
 #############################################################
 # Openshift Prerequisites
@@ -81,7 +117,7 @@
 # Install Openshift
 #############################################################
 - name: Install OpenShift
-  hosts: local
+  hosts: localhost
 
   vars_files:
     - vars/aws-config.yml
@@ -92,10 +128,47 @@
 
   roles:
   - openshift-install
-  - add-users
-  - openshift-post-install
 
-  post_tasks:
+#############################################################
+# Post-install tasks 
+#############################################################
+- name: Post-Install tasks 
+  hosts: master
+  remote_user: "{{ amazon_user }}"
+
+  vars_files:
+    - vars/aws-config.yml
+
+  roles:
+  - add-users
+  - {role: openshift-gluster-sc, when: install_gluster}
+  - {role: update-ssl-cockpit, when: master_ssl_cert_file is defined}
+  - {role: update-ssl-metrics, when: hawkular_ssl_cert_file is defined}
+  - {role: disable-service-catalog, when: disable_service_catalog}
+
+#############################################################
+# Output environment information
+#############################################################
+- name: OpenShift Information
+  hosts: localhost
+
+  vars_files:
+    - vars/aws-config.yml
+  tasks:
+   - name: SSL certificate information
+     debug:
+       msg: 
+         - 'SSL certificates have been generated using letsencrypt and backed up locally:'
+         - '\tcerts/letsencrypt\n'
+         - 'Note that letsencrypt is rate limited to 20 requests a week and SSL certificates last for 90 days.'
+         - 'If you need to run the playbook again, consider using the certificates backed up locally by'
+         - 'setting the following variables in vars/aws_config.yml'
+         - '\tmaster_ssl_cert_file: "{{master_ssl_cert_file}}"'
+         - '\tmaster_ssl_key_file: "{{master_ssl_key_file}}"'
+         - '\thawkular_ssl_cert_file: "{{hawkular_ssl_cert_file}}"'
+         - '\thawkular_ssl_key_file: "{{hawkular_ssl_key_file}}"'
+     when: use_lets_encrypt
+
    - name: Confirmation message
      debug:
       msg: 

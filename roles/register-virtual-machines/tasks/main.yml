@@ -1,11 +1,15 @@
 ---
+- name: debug key
+  debug:
+    msg: "variables {{rhsm_key_id}} and {{rhsm_org_id}}"
+
 - name: Force unregister before register
   redhat_subscription:
     state: absent
   ignore_errors: true
   become: true
 
-- name: Register VM
+- name: Customer portal registration
   redhat_subscription:
     state: present
     username: "{{rhsm_username}}"
@@ -16,15 +20,32 @@
   retries: 10
   delay: 5      
   become: true
+  when: (rhsm_username is defined) and
+        (rhsm_password is defined)  
+
+- name: Activation key registration
+  redhat_subscription:
+    state: "present"
+    activationkey: "{{ rhsm_key_id }}"
+    org_id: "{{ rhsm_org_id }}"
+    autosubscribe: false
+  register: result
+  until: result | succeeded
+  retries: 10
+  delay: 5
+  become: true
+  when: (rhsm_key_id is defined) and
+        (rhsm_org_id is defined)
 
 - name: Subscribe to pool
-  shell: /usr/bin/subscription-manager attach --pool={{ rhsm_pool}}
+  shell: /usr/bin/subscription-manager attach --pool={{ rhsm_pool }}
   register: task_result
   until: task_result.rc == 0
   retries: 10
   delay: 5
   ignore_errors: no      
   become: true
+  when: rhsm_pool is defined
 
 - name: Disable Repos
   shell: 'subscription-manager repos --disable="*"'

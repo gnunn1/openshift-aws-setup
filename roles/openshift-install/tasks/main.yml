@@ -43,7 +43,7 @@
   remote_user: "{{amazon_user}}"
   when: deployment_type == 'origin'
 
-- name: copy script for openshift istallation
+- name: copy script for openshift installation
   template:
     src: "../files/install-openshift.sh"
     dest: "~{{amazon_user}}/install-openshift.sh"

@@ -1,0 +1,85 @@
+---
+- name: Add extras and optional repo
+  shell: "yum-config-manager --enable rhui-REGION-rhel-server-extras rhui-REGION-rhel-server-optional"
+  become: true
+
+- name: install epel repository
+  yum:
+    name: "{{epel_repo_url}}"
+    state: present
+  register: result
+  until: '"failed" not in result'
+  retries: 5
+  delay: 10
+  become: true
+
+- name: yum update
+  yum: name=* state=latest
+  register: result
+  until: result | succeeded
+  retries: 3
+  delay: 5      
+  become: true
+
+- name: install certbot
+  yum: 
+    name: certbot
+    state: present
+  retries: 3
+  delay: 5      
+  become: true
+
+# Generate master SSL certifcate and copy it to bastion
+- name: generate master ssl certificate
+  shell: "certbot certonly -d {{public_dns_zone}} --standalone -m {{domain_email_address}} -n --agree-tos"  
+  become: true
+
+# Generate metrics SSL certifcate and copy it to bastion
+# - name: set hawkular fact
+#   set_fact:
+#     hawkular_domain: "hawkular-metrics.{{public_subdomain_prefix}}.{{public_dns_zone}}"
+
+- name: generate metrics ssl certificate
+  shell: "certbot certonly -d {{hawkular_domain}} --standalone -m {{domain_email_address}} -n --agree-tos"  
+  become: true
+  when: install_metrics
+
+- name: disable epel repo
+  shell: "yum-config-manager --disable epel"
+  become: true
+
+- name: fetch master SSL certificates to local machine
+  fetch:
+    src: /etc/letsencrypt/live/{{public_dns_zone}}/{{item}}
+    dest: certs/letsencrypt/{{public_dns_zone}}/{{item}}
+    flat: true
+  become: true
+  with_items:
+    - fullchain.pem
+    - privkey.pem
+    - cert.pem
+    - chain.pem
+
+- name: fetch hawkular SSL certificates to local machine
+  fetch:
+    src: /etc/letsencrypt/live/{{hawkular_domain}}/{{item}}
+    dest: certs/letsencrypt/{{hawkular_domain}}/{{item}}
+    flat: true
+  become: true
+  with_items:
+    - fullchain.pem
+    - privkey.pem
+    - cert.pem
+    - chain.pem
+  when: install_metrics
+
+- name: Set master SSL facts
+  set_fact:
+    master_ssl_cert_file: certs/letsencrypt/{{public_dns_zone}}/fullchain.pem
+    master_ssl_key_file: certs/letsencrypt/{{public_dns_zone}}/privkey.pem
+
+- name: Set hawkular SSL facts
+  set_fact:
+    hawkular_ssl_cert_file: certs/letsencrypt/{{hawkular_domain}}/fullchain.pem
+    hawkular_ssl_key_file: certs/letsencrypt/{{hawkular_domain}}/privkey.pem
+  when: install_metrics

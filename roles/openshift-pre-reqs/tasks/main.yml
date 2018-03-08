@@ -13,9 +13,14 @@
       - "sos"
       - "psacct"
       - "docker-1.12.6"
+      - "ntp"
     state: "present"
   become: true
- 
+
+- name: enable ntp on master and nodes
+  service: name=ntpd state=started enabled=yes
+  become: true
+
 - name: configure docker storage
   template:
     src: "../files/docker-storage-setup"
@@ -27,9 +32,9 @@
   become: true
 
 - name: Update docker options
-  shell: "sed -i '/OPTIONS=.*/c\\OPTIONS=\"--selinux-enabled --insecure-registry 172.30.0.0/16\"' /etc/sysconfig/docker"  
+  shell: "sed -i '/OPTIONS=.*/c\\OPTIONS=\"--selinux-enabled --insecure-registry 172.30.0.0/16\"' /etc/sysconfig/docker"
   become: true
-   
+
 - name: enable docker on master and nodes
   systemd:
      name: docker

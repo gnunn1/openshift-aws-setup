@@ -1,30 +1,18 @@
 ---
 - name: OpenShift login
   shell: "oc login -u system:admin"
-  delegate_to: "{{master_public_ip}}"
-  remote_user: "{{amazon_user}}"
   become: true
-  when: install_gluster
 
 - name: Disable AWS default storage class
   shell: "oc patch storageclass gp2 -p '{\"metadata\": {\"annotations\": {\"storageclass.kubernetes.io/is-default-class\": \"false\"}}}' -n openshift"
-  delegate_to: "{{master_public_ip}}"
-  remote_user: "{{amazon_user}}"
   become: true
-  when: install_gluster
   ignore_errors: true
 
 - name: Disable AWS default beta storage class
   shell: "oc patch storageclass gp2 -p '{\"metadata\": {\"annotations\": {\"storageclass.beta.kubernetes.io/is-default-class\": \"false\"}}}' -n openshift"
-  delegate_to: "{{master_public_ip}}"
-  remote_user: "{{amazon_user}}"
   become: true
-  when: install_gluster
   ignore_errors: true
 
 - name: Enable gluster default storage class
   shell: "oc patch storageclass glusterfs-storage -p '{\"metadata\": {\"annotations\": {\"storageclass.kubernetes.io/is-default-class\": \"true\"}}}' -n openshift"
-  delegate_to: "{{master_public_ip}}"
-  remote_user: "{{amazon_user}}"
   become: true
-  when: install_gluster  

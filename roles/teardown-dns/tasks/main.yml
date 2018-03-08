@@ -20,13 +20,23 @@
   with_sequence: start=1 end=3
   ignore_errors: true
   
+# - name: Delete private DNS zone for openshift
+#   route53_zone:
+#      zone: "{{dns_zone}}"
+#      state: "absent"
+#      vpc_region: "{{region}}"
+#   ignore_errors: yes
+#   register: delete_output
+
+- name: Get private DNS zone for openshift
+  shell: aws route53 list-hosted-zones --query 'HostedZones[*]' --output text | grep '\/hostedzone\/.*{{ dns_zone }}' | sed -e 's/.*\///' -e 's/[^a-zA-Z0-9].*//'
+  register: hosted_zone_id
+
+- debug: var=hosted_zone_id.stdout_lines[0]
+
 - name: Delete private DNS zone for openshift
-  route53_zone:
-     zone: "{{dns_zone}}"
-     state: "absent"
-     vpc_region: "{{region}}"
-     comment: "Internal zone for Openshift"
-  ignore_errors: yes
+  shell: aws route53 delete-hosted-zone --id '{{ hosted_zone_id.stdout_lines[0] }}'
+  when: hosted_zone_id.stdout_lines[0] is defined
 
 - name: Delete Public Route
   include: delete-route.yml zone={{ public_dns_zone }} record={{ public_dns_zone }} private_zone="false"
