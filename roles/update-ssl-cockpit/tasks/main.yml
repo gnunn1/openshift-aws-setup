@@ -1,0 +1,27 @@
+---
+- name: Create temporary file
+  tempfile:
+    state: file
+    suffix: cert
+  register: cockpit_cert
+  delegate_to: localhost
+
+- name: append cockpit certs
+  shell: "cat {{item}} >> {{cockpit_cert.path}}" 
+  with_items:
+    - "{{master_ssl_cert_file}}"
+    - "{{master_ssl_key_file}}"
+  delegate_to: localhost
+
+- name: copy master cert to cockpit
+  copy:
+    src: "{{cockpit_cert.path}}"
+    dest: "/etc/cockpit/ws-certs.d/1-my-cert.cert"
+  become: true
+
+- name: restart cockpit
+  systemd:
+     name: cockpit
+     enabled: yes
+     state: restarted
+  become: true 

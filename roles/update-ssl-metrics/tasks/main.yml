@@ -1,0 +1,35 @@
+---
+- name: create certs directory on master
+  file: path=certs/{{hawkular_domain}} state=directory
+
+- name: copy metrics certs to master
+  copy:
+    src: "{{item}}"
+    dest: "certs/{{hawkular_domain}}/{{item | basename}}"
+  with_items:
+    - "{{hawkular_ssl_chain_file}}"
+    - "{{hawkular_ssl_cert_file}}"
+    - "{{hawkular_ssl_key_file}}"
+
+- name: copy update script
+  copy:
+    src: "files/update-route-ssl.sh"
+    dest: "/home/{{amazon_user}}"
+
+- name: Set execute attribute on script
+  file:
+    path: "/home/{{amazon_user}}/update-route-ssl.sh"
+    state: touch
+    mode: "o+x"
+
+- name: oc login
+  shell: "oc login -u system:admin"
+  become: true
+
+- name: oc project openshift-infra
+  shell: "oc project openshift-infra"
+  become: true
+
+- name: update hawkular route
+  shell: "/home/{{amazon_user}}/update-route-ssl.sh /home/{{amazon_user}}/certs/{{hawkular_domain}}"
+  become: true

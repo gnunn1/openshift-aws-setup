@@ -29,3 +29,15 @@
     groups=created_nodes
     instance_name=node{{ item.index }}
   with_items: "{{ nodes_ip }}"
+
+- name: Master host
+  add_host:
+    name={{ master_public_ip}}
+    groups=master
+    instance_name=master
+
+- name: Bastion host
+  add_host:
+    name={{ bastion_public_ip}}
+    groups=bastion
+    instance_name=bastion

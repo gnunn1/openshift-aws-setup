@@ -1,0 +1,40 @@
+---
+- name: copy update script
+  copy:
+    src: "files/show-templates.sh"
+    dest: "/home/{{amazon_user}}"
+
+- name: oc login
+  shell: "oc login -u system:admin"
+  become: true
+
+- name: Set execute attribute on script
+  file:
+    path: "/home/{{amazon_user}}/show-templates.sh"
+    state: touch
+    mode: "o+x"  
+
+- name: Remove hidden attribute from templates
+  shell: "/home/{{amazon_user}}/show-templates.sh"
+  become: true
+
+- name: Remove console extension
+  lineinfile:
+    dest: /etc/origin/master/master-config.yaml
+    state: absent
+    regexp: "/etc/origin/master/openshift-ansible-catalog-console\\.js"
+  become: true
+
+- name: restart master-controller
+  systemd:
+     name: atomic-openshift-master-controllers.service
+     enabled: yes
+     state: restarted
+  become: true 
+
+- name: restart master-api
+  systemd:
+     name: atomic-openshift-master-api.service
+     enabled: yes
+     state: restarted
+  become: true 
