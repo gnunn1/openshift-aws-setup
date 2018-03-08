@@ -3,15 +3,15 @@
 #####################################################################
 
 # AWS region to install environment into
-region: "us-west-2"
+region: "us-east-1"
 
 # The public DNS for cluster, you must have a Route 53 zone configured for this
-public_dns_zone: "ocplab.com"
-# Prefix for subdomain for wildcard DNS, i.e. *.apps.ocplab.com
+public_dns_zone: "workshop-dlt.com"
+# Prefix for subdomain for wildcard DNS, i.e. *.apps.workshop-dlt.com
 public_subdomain_prefix: "apps"
 
 # Amazon key pair to use, must exist before running script. Please generate in AWS management console.
-aws_key_pair: "mykeypair"
+aws_key_pair: "ocp_keypair_workshop-dlt-3_7"
 
 # You have a choice, if you know the specific AMI you want to use, reference it by ami_id
 # If you do not know the ami_id, comment out the ami_id variable and uncomment the redhat_owner_id
@@ -22,19 +22,44 @@ aws_key_pair: "mykeypair"
 # below refers to a gold image in us-west-2, it's unlikely you have access
 # to it so change this variable to something appropriate. Use the AWS console
 # to locate a suitable image
-ami_id: "ami-cfa343b7"
+ami_id: "ami-26ebbc5c"
 
 # Users to create in OpenShift, highly recommend changing password
 # Set admin to true for users you want to be the cluster administrator
 # Any admin users are also added to master linux VM for cockpit
 users:
-  - {name: admin, password: changeme!, admin: true}
-  # - {name: developer1, password: changeme!, admin: false}
-  # - {name: developer2, password: changeme!, admin: false}
-  # - {name: developer3, password: changeme!, admin: false}
-  # - {name: developer4, password: changeme!, admin: false}
-  # - {name: developer5, password: changeme!, admin: false}
-  # - {name: nexus, password: changeme!, admin: false}
+  - {name: admin, password: r3dh4t1!, admin: true}
+  - {name: user1, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user2, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user3, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user4, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user5, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user6, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user7, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user8, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user9, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user10, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user11, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user12, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user13, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user14, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user15, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user16, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user17, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user18, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user19, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user20, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user21, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user22, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user23, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user24, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user25, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user26, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user27, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user28, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user29, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: user30, password: CUSTOMER_PASSWORD, admin: false}
+  - {name: nexus, password: r3dh4t1!, admin: false}
 
 #####################################################################
 # Variables you may optionally change for your installation
@@ -49,7 +74,7 @@ node_root_volume_size: 30
 docker_volume_size: 50
 
 # The number of application nodes in the cluster
-app_nodes: 3
+app_nodes: 2
 
 # The type of OpenShift deployment, must be either origin or openshift-enterprise.
 # To install OpenShift Enterprise, you must have a valid OpenShift subscription
@@ -81,7 +106,7 @@ gluster_volume_size: 100
 # namespace is used to uniquely differentiate the stack
 namespace: "openshift"
 # dns_zone is private zone, created and deleted by scripts
-dns_zone: "ose.local"
+dns_zone: "ocp.workshop-dlt.local"
 
 vpc_cidr: "10.0.0.0/16"
 subnet_cidr: "10.0.1.0/24"
