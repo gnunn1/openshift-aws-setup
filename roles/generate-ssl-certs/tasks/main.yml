@@ -21,6 +21,16 @@
   delay: 5      
   become: true
 
+- name: install pyOpenSSL 16.2 for certbot
+  yum:
+    name: "https://www.rpmfind.net/linux/fedora/linux/updates/25/x86_64/Packages/p/pyOpenSSL-16.2.0-2.fc25.noarch.rpm"
+    state: present
+  register: result
+  until: result | succeeded
+  retries: 3
+  delay: 10
+  become: true
+
 - name: install certbot
   yum: 
     name: certbot
@@ -33,11 +43,6 @@
 - name: generate master ssl certificate
   shell: "certbot certonly -d {{public_dns_zone}} --standalone -m {{domain_email_address}} -n --agree-tos"  
   become: true
-
-# Generate metrics SSL certifcate and copy it to bastion
-# - name: set hawkular fact
-#   set_fact:
-#     hawkular_domain: "hawkular-metrics.{{public_subdomain_prefix}}.{{public_dns_zone}}"
 
 - name: generate metrics ssl certificate
   shell: "certbot certonly -d {{hawkular_domain}} --standalone -m {{domain_email_address}} -n --agree-tos"  
@@ -71,15 +76,4 @@
     - privkey.pem
     - cert.pem
     - chain.pem
-  when: install_metrics
-
-- name: Set master SSL facts
-  set_fact:
-    master_ssl_cert_file: certs/letsencrypt/{{public_dns_zone}}/fullchain.pem
-    master_ssl_key_file: certs/letsencrypt/{{public_dns_zone}}/privkey.pem
-
-- name: Set hawkular SSL facts
-  set_fact:
-    hawkular_ssl_cert_file: certs/letsencrypt/{{hawkular_domain}}/fullchain.pem
-    hawkular_ssl_key_file: certs/letsencrypt/{{hawkular_domain}}/privkey.pem
   when: install_metrics

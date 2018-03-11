@@ -22,7 +22,7 @@
         that: 
           - "ansible_version.major == 2"
           - "ansible_version.minor == 4"
-        msg: "This script is only supported with the 2.4 version of Ansible"
+        msg: "This script is only supported with the 2.4.1 version of Ansible or later"
     
     - fail: msg="Variables required to register subscriptions are missing, please confirm that either rhsm_username, rhsm_password and rhsm_pool OR rhsm_key_id and rhsm_org_id is defined"
       when: (deployment_type == 'openshift-enterprise') and not (((rhsm_username is defined) and (rhsm_password is defined) and (rhsm_pool is defined)) or ((rhsm_key_id is defined) and (rhsm_org_id is defined)))
@@ -77,11 +77,14 @@
     - vars/aws-config.yml
 
   tasks:
+    - name: Set master SSL facts for lets encrypt
+      set_fact:
+        master_ssl_cert_file: certs/letsencrypt/{{public_dns_zone}}/fullchain.pem
+        master_ssl_key_file: certs/letsencrypt/{{public_dns_zone}}/privkey.pem
+      when: use_lets_encrypt
+
     - name: create directory for certs
-      file: path=certs/{{item}} state=directory
-      with_items:
-        - "{{public_dns_zone}}"
-        - "{{hawkular_domain}}"
+      file: path=certs/{{public_dns_zone}} state=directory
 
     - name: copy master SSL certificates to bastion
       copy:
@@ -90,6 +93,7 @@
       with_items:
         - "{{master_ssl_cert_file}}"
         - "{{master_ssl_key_file}}"
+      when: master_ssl_cert_file is defined
 
 #############################################################
 # Openshift Prerequisites
@@ -126,6 +130,13 @@
 #    nodes_ip: "{{ lookup('file','nodes.json') | from_json }}"
     state: 'present'
 
+  pre_tasks:
+  - name: Set master SSL facts for lets encrypt
+    set_fact:
+      master_ssl_cert_file: certs/letsencrypt/{{public_dns_zone}}/fullchain.pem
+      master_ssl_key_file: certs/letsencrypt/{{public_dns_zone}}/privkey.pem
+    when: use_lets_encrypt
+
   roles:
   - openshift-install
 
@@ -138,6 +149,48 @@
 
   vars_files:
     - vars/aws-config.yml
+
+  pre_tasks:
+  - name: Set master SSL facts for lets encrypt
+    set_fact:
+      master_ssl_cert_file: certs/letsencrypt/{{public_dns_zone}}/fullchain.pem
+      master_ssl_key_file: certs/letsencrypt/{{public_dns_zone}}/privkey.pem
+    when: use_lets_encrypt
+
+  - name: Set hawkular SSL facts
+    set_fact:
+      hawkular_ssl_cert_file: certs/letsencrypt/{{hawkular_domain}}/cert.pem
+      hawkular_ssl_key_file: certs/letsencrypt/{{hawkular_domain}}/privkey.pem
+      hawkular_ssl_chain_file: certs/letsencrypt/{{hawkular_domain}}/chain.pem
+    when: use_lets_encrypt and install_metrics
+
+  post_tasks:
+   - name: SSL certificate information
+     debug:
+       msg: 
+         - 'SSL certificates have been generated using letsencrypt and backed up locally:'
+         - '\tcerts/letsencrypt\n'
+         - 'Note that letsencrypt is rate limited to 20 requests a week and SSL certificates last for 90 days.'
+         - 'If you need to run the playbook again, consider using the certificates backed up locally by'
+         - 'setting the following variables in vars/aws_config.yml'
+         - '\tmaster_ssl_cert_file: "{{master_ssl_cert_file}}"'
+         - '\tmaster_ssl_key_file: "{{master_ssl_key_file}}"'
+         - '\thawkular_ssl_cert_file: "{{hawkular_ssl_cert_file}}"'
+         - '\thawkular_ssl_chain_file: "{{hawkular_ssl_chain_file}}"'
+         - '\thawkular_ssl_key_file: "{{hawkular_ssl_key_file}}"'
+     when: use_lets_encrypt and install_metrics
+
+   - name: SSL certificate information
+     debug:
+       msg: 
+         - 'SSL certificates have been generated using letsencrypt and backed up locally:'
+         - '\tcerts/letsencrypt\n'
+         - 'Note that letsencrypt is rate limited to 20 requests a week and SSL certificates last for 90 days.'
+         - 'If you need to run the playbook again, consider using the certificates backed up locally by'
+         - 'setting the following variables in vars/aws_config.yml'
+         - '\tmaster_ssl_cert_file: "{{master_ssl_cert_file}}"'
+         - '\tmaster_ssl_key_file: "{{master_ssl_key_file}}"'
+     when: use_lets_encrypt and not install_metrics
 
   roles:
   - add-users
@@ -154,21 +207,8 @@
 
   vars_files:
     - vars/aws-config.yml
-  tasks:
-   - name: SSL certificate information
-     debug:
-       msg: 
-         - 'SSL certificates have been generated using letsencrypt and backed up locally:'
-         - '\tcerts/letsencrypt\n'
-         - 'Note that letsencrypt is rate limited to 20 requests a week and SSL certificates last for 90 days.'
-         - 'If you need to run the playbook again, consider using the certificates backed up locally by'
-         - 'setting the following variables in vars/aws_config.yml'
-         - '\tmaster_ssl_cert_file: "{{master_ssl_cert_file}}"'
-         - '\tmaster_ssl_key_file: "{{master_ssl_key_file}}"'
-         - '\thawkular_ssl_cert_file: "{{hawkular_ssl_cert_file}}"'
-         - '\thawkular_ssl_key_file: "{{hawkular_ssl_key_file}}"'
-     when: use_lets_encrypt
 
+  tasks:
    - name: Confirmation message
      debug:
       msg: 
