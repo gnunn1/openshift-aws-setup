@@ -2,6 +2,8 @@
 
 ## Overview
 
+
+=======
 This is an Ansible auotmation playbook that provisions a small OpenShift environment (1 master, x app nodes) that is suitable for demos, POCs and small workshops. The playbook can deploy either Origin or Container Platform.
 
 AWS related configuration can be customised by modifying ```vars/aws-config.yaml```. Note that the number of application nodes is configurable, the default is 3.
