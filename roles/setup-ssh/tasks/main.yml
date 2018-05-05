@@ -52,14 +52,30 @@
   with_items:
    - "{{nodes}}"
 
-- name: run ssh-keyscan to add master to known_hosts
-  local_action: shell ssh-keyscan {{ master_private_dns_name }} >> ~/.ssh/known_hosts
+- name: touch host known_hosts file on bastion
+  file:
+    path: ~/.ssh/known_hosts
+    state: touch
+    mode: "0644"
   delegate_to: "{{bastion_public_ip}}"
   remote_user: "{{amazon_user}}"
-  
+
+- name: run ssh-keyscan to add master to known_hosts
+  command: /usr/bin/ssh-keyscan -t rsa {{ master_private_dns_name }} >> ~/.ssh/known_hosts
+  delegate_to: "{{bastion_public_ip}}"
+  remote_user: "{{amazon_user}}"
+
 - name: run ssh-keyscan to add nodes to known_hosts
-  local_action: shell ssh-keyscan {{ item.private_dns_name }} >> ~/.ssh/known_hosts
+  command: /usr/bin/ssh-keyscan -t rsa {{ item.private_dns_name }} >> ~/.ssh/known_hosts
   delegate_to: "{{bastion_public_ip}}"
   remote_user: "{{amazon_user}}"
   with_items:
-   - "{{nodes}}"  
+   - "{{nodes}}"
+
+- name: touch host known_hosts file again, but add/remove some permissions
+  file:
+    path: ~/.ssh/known_hosts
+    state: touch
+    mode: "0600"
+  delegate_to: "{{bastion_public_ip}}"
+  remote_user: "{{amazon_user}}"

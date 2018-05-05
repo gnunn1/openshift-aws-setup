@@ -1,0 +1,92 @@
+---
+
+- name: oc login
+  shell: "oc login -u system:admin"
+  become: true
+
+- name: check if project exists
+  shell: "oc project cfme -q"
+  register: result
+  ignore_errors: yes
+  become: true
+
+# - debug: msg="{{ result.rc }}"
+
+- name: create cloudforms project
+  shell: "oc new-project cfme --description='Cloudforms Project' --display-name='cloudforms'"
+  when: result.rc != 0
+  become: true
+
+- name: add the cfme-anyuid service account to the anyuid scc
+  shell: "oc adm policy add-scc-to-user anyuid system:serviceaccount:cfme:cfme-anyuid"
+  become: true
+
+- name: add the cfme-orchestrator service account to the anyuid scc
+  shell: "oc adm policy add-scc-to-user anyuid system:serviceaccount:cfme:cfme-orchestrator"
+  become: true
+
+- name: add the cfme-httpd service account to the anyuid scc
+  shell: "oc adm policy add-scc-to-user anyuid system:serviceaccount:cfme:cfme-httpd"
+  become: true
+
+- name: verify the anyuid sccs are added correctly to the service accounts and project
+  shell: "oc describe scc anyuid | grep Users"
+  register: result
+  ignore_errors: yes
+  become: true
+
+- debug: msg="{{ result.stdout }}"
+
+- name: add the cfme-privileged service account to the privileged scc
+  shell: "oc adm policy add-scc-to-user privileged system:serviceaccount:cfme:cfme-privileged"
+  become: true
+
+- name: add the cfme-orchestrator service account to the anyuid scc
+  shell: "oc adm policy add-scc-to-user privileged system:serviceaccount:cfme:cfme-orchestrator"
+  become: true
+
+- name: add the cfme-httpd service account to the anyuid scc
+  shell: "oc adm policy add-scc-to-user privileged system:serviceaccount:cfme:cfme-httpd"
+  become: true
+
+- name: verify the privileged sccs are added correctly to the service accounts and project
+  shell: "oc describe scc privileged | grep Users"
+  register: result
+  ignore_errors: yes
+  become: true
+
+- debug: msg="{{ result.stdout }}"
+
+- name: add the view roles to the cfme-orchestrator service account
+  shell: "oc policy add-role-to-user view system:serviceaccount:cfme:cfme-orchestrator -n cfme"
+  become: true
+
+- name: add the edit roles to the cfme-orchestrator service account
+  shell: "oc policy add-role-to-user edit system:serviceaccount:cfme:cfme-orchestrator -n cfme"
+  become: true
+
+- name: Create cfme-sysadmin anyuid scc which enables users SYS_ADMIN capabilities
+  shell: "oc create -f ../files/cfme-scc-sysadmin.yaml -n cfme"
+  ignore_errors: yes
+  become: true
+
+- name: add the cfme-httpd service account to the cfme-sysadmin scc
+  shell: "oc adm policy add-scc-to-user cfme-sysadmin system:serviceaccount:cfme:cfme-httpd"
+  become: true
+
+- name: verify the cfme-sysadmin sccs are added correctly to the service accounts and project
+  shell: "oc describe scc cfme-sysadmin | grep Users"
+  register: result
+  ignore_errors: yes
+  become: true
+
+- debug: msg="{{ result.stdout }}"
+
+- name: add cloudforms appliance with persistent storage template to openshift project
+  shell: "oc create -f ../files/cfme-template.yaml"
+  ignore_errors: yes
+  become: true
+
+- name: create cloudforms appliance with persistent storage
+  shell: "oc new-app --template=cloudforms"
+  become: true

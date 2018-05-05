@@ -22,6 +22,14 @@ AWS related configuration can be customised by modifying ```vars/aws-config.yaml
 
 Where ```mykeypair``` is the name of your keypair. Obviously you need to have a copy of mykeypair.pem in the .ssh directory as well in order for it to be used.
 
+Also, you need to have read+write for user only permissions set on `~/.ssh/config`, like so:
+
+ ```
+ chmod 600 ~/.ssh/config
+ ```
+
+Otherwise you'll encounter 'bad owner or permissions on ssh/config' error message.
+
 ## Ansible Compatibility
 
 Note that some specific versions of Ansible will not work due to bugs, here is a list of the ones I am aware of:
@@ -100,4 +108,3 @@ Cockpit is available on port 9090 so you can access it using the same URL as the
 
  - https://www.codeproject.com/Articles/1168687/Get-up-and-running-with-OpenShift-on-AWS
  - https://docs.openshift.org/latest/welcome/index.html
- 
