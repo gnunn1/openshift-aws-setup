@@ -10,6 +10,9 @@ AWS related configuration can be customised by modifying ```vars/aws-config.yaml
 
  - Ansible 2.4.2 or later is required
  - AWS credentials: access key & secret --> http://docs.aws.amazon.com/general/latest/gr/managing-aws-access-keys.html
+
+   **[NOTE]** These modules all require that you have AWS api keys available to use and provision AWS resources. You also need to have IAM permissions set to allow you to create resources within AWS. There are several methods for setting up you AWS environment on you local machine, but for convenience purposes - fill out `setup.sh.example` with your AWS access key & secret. Once that is complete, `source` the script to set your current environmental context.
+
  - Ansible installed --> http://docs.ansible.com/ansible/intro_installation.html
  - Route 53 Public Hosted Zone. The playbook use Route53 for private and public DNS and routes. While the playbook automatically creates everything for the private DNS hosted zone and routes, it is expected that you have a public hosted zone in Route 53 that matches whatever you are using for the public DNS.
  - By default a single admin user is created called ```admin``` that can be used to login into the web console. The password for the user is in the ```vars/aws-config.yml``` vars file. __PLEASE CHANGE THE PASSWORD TO SOMETHING UNIQUE!__. Other users can be added to this file as well.
