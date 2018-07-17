@@ -1,0 +1,109 @@
+{
+ "variables": {
+  "git_commit": "57c4fd41cc3c2602ef62716e0fb867e8439d29c0",
+  "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+  "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+  "aws_region": "{{env `AWS_DEFAULT_REGION`}}",
+  "rhsm_username": null,
+  "rhsm_password": null,
+  "rhsm_org_id": "",
+  "rhsm_key_id": "",
+  "rhsm_pool_id": null,
+  "ami_id": null
+ },
+ "builders": [{
+  "type": "amazon-ebs",
+  "access_key": "{{user `aws_access_key`}}",
+  "secret_key": "{{user `aws_secret_key`}}",
+  "region": "{{user `aws_region`}}",
+  "source_ami": "{{user `ami_id`}}",
+  "instance_type": "t2.micro",
+  "ssh_username": "ec2-user",
+  "ami_name": "Red Hat Enterprise Linux 7 AMI {{timestamp | clean_ami_name}}",
+  "ami_description": "This base image provides language runtimes and tools to run, maintain, and troubleshoot applications while keeping the image size small. For further information on how this image was built look at the /root/anacanda-ks.cfg file.",
+  "tags": {
+   "Component": "rhel-server-packer",
+   "AMI": "{{ .SourceAMIName }}",
+   "Vendor": "Red Hat, Inc.",
+   "URL": "https://access.redhat.com/articles/3135091",
+   "Summary": "Provides the latest release of Red Hat Enterprise Linux 7 in a fully featured and supported base image.",
+   "VCSType": "git",
+   "Name": "rhel7-core",
+   "VCSRef": "{{user `git_commit`}}",
+   "Version": "7.4",
+   "Architecture": "x86_64",
+   "Release": "3",
+   "BuildDate": "{{isotime | clean_ami_name}}"
+  }
+ }],
+ "provisioners": [{
+   "type": "file",
+   "destination": "/tmp/",
+   "source": "./root"
+  },
+  {
+   "type": "shell",
+   "execute_command": "{{ .Vars }} sudo -E sh '{{ .Path }}'",
+   "inline": [
+    "/usr/bin/chown -R root:root /tmp/root/",
+    "/usr/bin/cp -rf /tmp/root/* /",
+    "/usr/bin/printf '%s\n' '209.132.183.44  xmlrpc.rhn.redhat.com' >> /etc/hosts",
+    "/usr/bin/printf '%s\n' '23.204.148.218  content-xmlrpc.rhn.redhat.com' >> /etc/hosts",
+    "/usr/bin/printf '%s\n' '209.132.183.49  subscription.rhn.redhat.com' >> /etc/hosts",
+    "/usr/bin/printf '%s\n' '209.132.183.108 subscription.rhsm.redhat.com' >> /etc/hosts",
+    "/usr/bin/printf '%s\n' '209.132.182.63  registry.access.redhat.com' >> /etc/hosts",
+    "/usr/bin/printf '%s\n' '209.132.182.33  repository.jboss.org' >> /etc/hosts",
+    "/usr/bin/sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/amazon-id.conf",
+    "/usr/bin/sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/rhui-lb.conf",
+    "/usr/bin/sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum.repos.d/redhat-rhui.repo",
+    "/usr/bin/sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum.repos.d/redhat-rhui-client-config.repo",
+    "/usr/bin/sed -i -e 's/^enabled=0/enabled=1/g' /etc/yum/pluginconf.d/product-id.conf",
+    "/usr/bin/sed -i -e 's/^enabled=0/enabled=1/g' /etc/yum/pluginconf.d/subscription-manager.conf",
+    "if [ ! -z \"{{user `rhsm_username`}}\"  ] && [ ! -z \"{{user `rhsm_password`}}\" ]; then /usr/bin/subscription-manager register --username={{user `rhsm_username`}} --password={{user `rhsm_password`}} --auto-attach; fi",
+    "if [ ! -z \"{{user `rhsm_org_id`}}\"  ] && [ ! -z \"{{user `rhsm_key_id`}}\" ]; then /usr/bin/subscription-manager register --org={{user `rhsm_org_id` }} --activationkey={{user `rhsm_key_id` }}; fi",
+    "count=0; while [ $? -ne 0 ] || (( count++ >= 5 )); do !!; /usr/bin/sleep $count; done",
+    "/usr/bin/subscription-manager refresh",
+    "if [ ! -z \"{{user `rhsm_pool_id`}}\"  ]; then /usr/bin/subscription-manager subscribe --pool={{user `rhsm_pool_id` }}; fi"
+   ]
+  },
+  {
+   "type": "shell",
+   "execute_command": "{{ .Vars }} sudo -E sh '{{ .Path }}'",
+   "inline": [
+    "/usr/bin/subscription-manager repos --disable=\"*\"",
+    "/usr/bin/yum-config-manager --disable \\*",
+    "/usr/bin/subscription-manager repos --enable=rhel-7-server-rpms --enable=rhel-7-server-extras-rpms --enable=rhel-7-server-optional-rpms",
+    "/usr/bin/rpmkeys --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-beta /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release",
+    "/usr/bin/yum check-update",
+    "INSTALL_PKGS='bind-utils bridge-utils findutils gettext git httpd-tools iptables-services kexec-tools net-tools psacct sos tar unzip wget yum-utils'",
+    "/usr/bin/yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS",
+    "/usr/bin/rpm -V $INSTALL_PKGS",
+    "/usr/bin/yum clean all -y",
+    "/usr/bin/yum update -y",
+    "/usr/bin/systemctl reboot"
+   ],
+   "expect_disconnect": true
+  },
+  {
+   "type": "shell",
+   "execute_command": "{{ .Vars }} sudo -E sh '{{ .Path }}'",
+   "inline": [
+    "/usr/bin/subscription-manager remove --all",
+    "/usr/bin/subscription-manager unregister",
+    "/usr/bin/subscription-manager clean",
+    "/usr/bin/sed -i -e 's/^enabled=0/enabled=1/g' /etc/yum/pluginconf.d/amazon-id.conf",
+    "/usr/bin/sed -i -e 's/^enabled=0/enabled=1/g' /etc/yum/pluginconf.d/rhui-lb.conf",
+    "/usr/bin/sed -i -e 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/redhat-rhui.repo",
+    "/usr/bin/sed -i -e 's/^enabled=0/enabled=1/g' /etc/yum.repos.d/redhat-rhui-client-config.repo",
+    "/usr/bin/sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/product-id.conf",
+    "/usr/bin/sed -i -e 's/^enabled=1/enabled=0/g' /etc/yum/pluginconf.d/subscription-manager.conf",
+    "/usr/bin/printf '%s\n' '127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4' > /etc/hosts",
+    "/usr/bin/printf '%s\n' '::1         localhost localhost.localdomain localhost6 localhost6.localdomain6' >> /etc/hosts",
+    "/usr/bin/rpm-file-permissions",
+    "/usr/bin/rm -rf /tmp/root",
+    "/usr/bin/rm -rf /var/cache/yum"
+   ],
+   "pause_before": "20s"
+  }
+ ]
+}

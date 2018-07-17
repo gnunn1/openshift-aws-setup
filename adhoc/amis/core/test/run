@@ -1,0 +1,45 @@
+#!/bin/bash
+
+TEMPLATE_NAME=${TEMPLATE_NAME-template.json}
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIRS="$( cd "`dirname "${SCRIPT_PATH}"`" && pwd )"
+SCRIPT_FILE="${SCRIPT_PATH##*\/}"
+SCRIPT_NAME="${SCRIPT_FILE%.*}"
+SCRIPT_TYPE="${SCRIPT_FILE##*\.}"
+SCRIPT_RELATIVE_PATH="$( cd "`dirname "${SCRIPT_PATH}"`" && pwd )/${SCRIPT_FILE}"
+
+pushd "${SCRIPT_RELATIVE_PATH}" &>/dev/null
+
+if [ -h "$( pwd )" ]; then
+ SCRIPT_ABSOLUTE_PATH="$( readlink ${SCRIPT_RELATIVE_PATH} )"
+else
+ SCRIPT_ABSOLUTE_PATH="${SCRIPT_RELATIVE_PATH}"
+fi
+
+popd &>/dev/null
+
+test_packer_validate_usage() {
+ printf "Testing 'packer validate' usage...\n"
+ packer validate "$(dirname $SCRIPT_ABSOLUTE_PATH)/../${TEMPLATE_NAME}"
+}
+
+check_result() {
+ local result="$1"
+ if [[ "$result" != "0" ]]; then
+  printf "Validate '%s' test FAILED (exit code: %s)\n" "${TEMPLATE_NAME}" "${result}"
+  return $result
+ fi
+}
+
+test_packer_validate_usage
+
+if ! check_result $?; then
+ printf "** Source File PATHs **\n" "$(basename "`test -L ${BASH_SOURCE[0]} && readlink ${BASH_SOURCE[0]} || echo ${BASH_SOURCE[0]}`")"
+ printf "SCRIPT_PATH \xE2\x9E\xA1 %s\n" "${SCRIPT_PATH}"
+ printf "SCRIPT_DIRS \xE2\x9E\xA1 %s\n" "${SCRIPT_DIRS}"
+ printf "SCRIPT_FILE \xE2\x9E\xA1 %s\n" "${SCRIPT_FILE}"
+ printf "SCRIPT_NAME \xE2\x9E\xA1 %s\n" "${SCRIPT_NAME}"
+ printf "SCRIPT_TYPE \xE2\x9E\xA1 %s\n" "${SCRIPT_TYPE}"
+ printf "SCRIPT_RELATIVE_PATH \xE2\x9E\xA1 %s\n" "${SCRIPT_RELATIVE_PATH}"
+ printf "SCRIPT_ABSOLUTE_PATH \xE2\x9E\xA1 %s\n" "${SCRIPT_ABSOLUTE_PATH}"
+fi

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -ex
+
+DEFAULT_REPOS=${DEFAULT_REPOS:-"rhel-7-server-rpms rhel-7-server-extras-rpms rhel-7-server-optional-rpms"}
+SKIP_REPOS_ENABLE=${SKIP_REPOS_ENABLE:-false}
+SKIP_REPOS_DISABLE=${SKIP_REPOS_DISABLE:-false}
+
+is_subscribed() {
+ for f in /run/secrets/etc-pki-entitlement/*.pem ; do
+  [ -e "$f" ] && return 0
+  break
+ done
+ return 1
+}
+
+if [ "$SKIP_REPOS_DISABLE" = false ] && is_subscribed; then
+ # Disable only repos that might come from subscribed host, because there
+ # might be other repos provided by user or build system
+
+ disable_repos=
+ # Lines look like: "Repo-id  :  dist-tag-override/x86_64"
+ while IFS=' /' read -r _ _ repo_id _; do
+  case $repo_id in
+   rhel-*) disable_repos+=" $repo_id" ;;
+   \* ) echo $repo_id ;;
+  esac
+ done <<<"$(yum repolist -v 2>/dev/null | grep Repo-id)"
+
+ if test -n "$disable_repos"; then
+  /usr/bin/yum-config-manager --disable $disable_repos &> /dev/null
+ fi
+fi
+
+if [ ${SKIP_REPOS_ENABLE} = false ] && [ -n "${DEFAULT_REPOS}" -o $# -gt 0 ] ; then
+ /usr/bin/yum-config-manager --enable ${DEFAULT_REPOS} "$@"
+fi
