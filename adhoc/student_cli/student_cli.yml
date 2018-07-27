@@ -1,0 +1,34 @@
+- name: Configure software on nodes
+  become: yes
+  remote_user: ec2-user
+  hosts: masters
+  vars:
+    # Wetty
+    system_user: "ec2-user"
+    letsencrypt: false
+    domain_name: "changeme!"
+    workshop_password: "changeme!"
+    openssl_self_signed:
+      - name: '{{ domain_name }}'
+        domains: ['*.{{ domain_name }}', '{{ domain_name }}']
+        country: 'US'
+        state: 'DC'
+        city: 'Washington'
+        organization: 'Example'
+        unit: 'Business Unit'
+        email: 'jsmith@example.com'
+        days: 3650
+    key_path:   "home/{{ system_user }}/.wetty/privkey.pem"
+    cert_path:  "home/{{ system_user }}/.wetty/cert.pem"
+    wetty_port:  8888
+    wetty_user: "ec2-user" # "cockpit"
+    # Users
+    openshift_cluster_admin_username: changeme!
+    openshift_cluster_admin_password: changeme!
+    openshift_test_users_prefix: user
+    openshift_test_users_password: changeme!
+    openshift_test_users_count: 20
+  roles:
+    - { role: wetty }
+    - { role: oc }
+    - { role: users }
