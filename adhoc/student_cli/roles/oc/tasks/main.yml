@@ -1,0 +1,17 @@
+# file: roles/oc/tasks/main.yml
+---
+# https://github.com/openshift/origin/releases/download/v1.5.0-rc.0/openshift-origin-client-tools-v1.5.0-rc.0-49a4a7a-linux-64bit.tar.gz
+
+- name: Name for get_url module.
+  become: yes
+  get_url:
+    dest: "/bin"
+    url:  "https://mirror.openshift.com/pub/openshift-v3/clients/3.7.42/linux/oc.tar.gz"
+    validate_certs: false
+
+- name: Unarchive the oc binary
+  become: yes
+  unarchive:
+    src: "/bin/oc.tar.gz"
+    dest: "/bin/"
+    remote_src: True
