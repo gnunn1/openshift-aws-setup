@@ -18,6 +18,8 @@
         from_port: "0"
         to_port: "0"
         group_name: "{{namespace}}-vpc"
+    tags:
+      "{'Name':'infra-{{namespace}}','namespace':'{{namespace}}','kubernetes.io/cluster/{{namespace}}':'{{namespace}}'}"
 
 #  This security group allows public ingress to the instances for HTTP, HTTPS and common HTTP/S proxy ports.
 - name: create openshift-public-ingress
@@ -53,8 +55,8 @@
         from_port: "9090"
         to_port: "9090"
         cidr_ip: "0.0.0.0/0"
-    rules_egress: []    
- 
+    rules_egress: []
+
 #  This security group allows public ingress to the instances for HTTP, HTTPS and common HTTP/S proxy ports.
 - name: create openshift-public-egress
   ec2_group:

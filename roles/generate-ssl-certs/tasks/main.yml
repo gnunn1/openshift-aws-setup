@@ -18,7 +18,7 @@
   register: result
   until: result | succeeded
   retries: 3
-  delay: 5      
+  delay: 5
   become: true
 
 - name: install pyOpenSSL 16.2 for certbot
@@ -32,20 +32,21 @@
   become: true
 
 - name: install certbot
-  yum: 
-    name: 
+  yum:
+    name:
       - "certbot"
       - "python2-certbot-dns-route53"
+      - "python-boto3"
     state: present
   retries: 3
-  delay: 5      
+  delay: 5
   become: true
 
 # Generate master SSL certificate
 - name: generate master ssl certificate
-  shell: "certbot certonly -d {{public_master_dns}} --standalone -m {{domain_email_address}} -n --agree-tos"  
+  shell: "certbot certonly -d {{public_master_dns}} --standalone -m {{domain_email_address}} -n --agree-tos"
   become: true
-  
+
 # Generate wildcard SSL certificate
 - name: generate wildcard ssl certificate
   shell: "certbot certonly -d *.{{public_subdomain_prefix}}.{{public_dns_zone}} -m {{domain_email_address}} -n --agree-tos --server=https://acme-v02.api.letsencrypt.org/directory --dns-route53"
