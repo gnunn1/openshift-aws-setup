@@ -4,12 +4,19 @@
   register: result
   until: result is succeeded
   retries: 10
-  delay: 5      
+  delay: 5
   become: true
 
 - name: Install packages
   yum:
     name:
       - "heketi-client"
-      - "cns-deploy"
+  become: true
+
+- name: Disable gluster repo on master
+  shell: 'subscription-manager repos --disable="rh-gluster-3-for-rhel-7-server-rpms"'
+  register: result
+  until: result is succeeded
+  retries: 10
+  delay: 5
   become: true

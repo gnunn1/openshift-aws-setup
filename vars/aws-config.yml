@@ -23,10 +23,10 @@ aws_key_pair: "mykeypair"
 # to locate a suitable image
 
 # Standard ca-central-1 Gold Image AMI
-ami_id: "ami-e320ad87"
+ami_id: "ami-0b6a758ae6618ab0a"
 
 # Whether to install metrics
-install_metrics: false
+install_metrics: true
 # Whether to install logging
 install_logging: false
 # Whether to enable monitoring (prometheus) storage, monitoring required
@@ -50,7 +50,7 @@ users:
 # demos, etc. Users are created with the prefix plus a number using
 # the password specified
 create_generic_user: true
-generic_user_prefix: developer
+generic_user_prefix: user
 generic_user_count: 5
 generic_user_password: changeme!
 
@@ -79,9 +79,11 @@ domain_email_address: "me@me.com"
 #####################################################################
 
 # Variables for node configuration
-bastion_ami_size: "t2.small"
-master_ami_size: "m4.xlarge"
-node_ami_size: "t2.large"
+bastion_ami_size: "t3.small"
+master_ami_size: "m5.xlarge"
+# Note t3 uses burstable credits which is good for clusters with light loads, m5 is better
+# for steady state loads
+node_ami_size: "t3.large"
 master_root_volume_size: 50
 node_root_volume_size: 30
 docker_volume_size: 50
@@ -93,7 +95,7 @@ app_nodes: 3
 # Useful for larg'ish workshops where you want to split the workload and not have
 # the master doing everything
 standalone_infra_node: false
-infra_ami_size: "m4.xlarge"
+infra_ami_size: "m5.xlarge"
 infra_root_volume_size: 50
 
 # The type of OpenShift deployment, must be either origin or openshift-enterprise.
@@ -134,6 +136,9 @@ gluster_volume_size: 300
 # The block volume size, should be less then gluster_volume_size but big
 # enough to host metrics and logging blocks
 gluster_block_host_volume_size: 150
+# Specify which device to use for the gluster disks. Depending on the instance type,
+# this can be /dev/xvdc or /dev/nvme2n1
+gluster_device: /dev/nvme2n1
 
 #####################################################################
 # Variables you do not want to change unless you are sure you know
