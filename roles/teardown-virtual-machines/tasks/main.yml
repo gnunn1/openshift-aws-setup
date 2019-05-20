@@ -1,6 +1,6 @@
 ---
 - name: Gather EC2 facts
-  ec2_remote_facts:
+  ec2_instance_facts:
     region: "{{ region }}"
     filters:
       "tag:namespace": "{{namespace}}"
@@ -21,19 +21,19 @@
 
 - name: Disassociate elastic IP
   ec2_eip:
-    device_id: "{{item.id}}"
-    ip: "{{item.public_ip_address}}"
+    device_id: "{{item.instance_id}}"
+    private_ip_address: "{{item.public_ip_address}}"
     region: "{{region}}"
     state: absent
     release_on_disassociation: yes
   with_items: "{{ ec2_facts.instances }}"
-  when: ((item is defined) and ((item.tags.Name == 'master-' ~ namespace) or (item.tags.Name == 'infra-' ~ namespace)) and (item.state != 'terminated'))
+  when: ((item is defined) and ((item.tags.Name == 'master-' ~ namespace) or (item.tags.Name == 'infra-' ~ namespace)) and (item.state.name != 'terminated'))
 
 - name: Terminate EC2 VMs
   ec2:
     state: absent
     region: "{{ region }}"
-    instance_ids: "{{ item.id }}"
+    instance_ids: "{{ item.instance_id }}"
     wait: yes
   with_items: "{{ ec2_facts.instances }}"
   when: item.state != 'terminated'

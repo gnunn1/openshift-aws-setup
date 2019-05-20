@@ -6,9 +6,6 @@
       "tag:Name": "{{namespace}}-vpc"
   register: vpc_facts
 
-- debug:
-    msg: "{{vpc_facts}}"
-
 - block:
   - name: Gather route table facts
     ec2_vpc_route_table_facts:
