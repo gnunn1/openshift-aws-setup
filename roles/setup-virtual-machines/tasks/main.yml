@@ -30,9 +30,13 @@
     exact_count: 1
   register: ec2_master
 
+- debug:
+    msg: "{{ec2_master}}"
+
 - name: allocate a new elastic IP and associate it with master
   ec2_eip:
    device_id: "{{ec2_master['tagged_instances'][0]['id']}}"
+   private_ip_address: "{{ec2_master['tagged_instances'][0]['private_ip']}}"
    region: "{{region}}"
    in_vpc: "yes"
    release_on_disassociation: true
